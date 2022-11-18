@@ -1,4 +1,5 @@
 import sys
+import time
 
 import cv2
 import numpy as np
@@ -16,10 +17,11 @@ def main():
     rgb_filenames, camera_params = \
         read_files_tum(folder_path="data/rgbd_dataset_freiburg1_desk/", delta=1)
 
-    orb = cv2.ORB_create()
+    orb = cv2.ORB_create(nfeatures=500)
+    #akaze = cv2.AKAZE_create()
 
-    max_delta = 10  # < 60
-    start_frame = 90
+    max_delta = 30  # < 60
+    start_frame = 0
 
     idx_init = 0
     idx_cur = 0
@@ -27,39 +29,23 @@ def main():
     num_frames = len(rgb_filenames)
     initialized = False
 
-    for i in range(start_frame, num_frames - 60):
+    i = start_frame
+    while i < num_frames:
         print("ref frame: ", i)
         image_ref = cv2.imread(rgb_filenames[i], cv2.IMREAD_GRAYSCALE)
-        kp1, des1 = orb.detectAndCompute(image_ref, None) # max num of feataure points: 500(default)
+        kp1, des1 = orb.detectAndCompute(image_ref, None)
+        #kp1, des1 = akaze.detectAndCompute(image_ref, None)
         
-        for j in range(i + 5, i + max_delta):
+        for j in range(i + 3, i + max_delta):
             image_cur = cv2.imread(rgb_filenames[j], cv2.IMREAD_GRAYSCALE)
             kp2, des2 = orb.detectAndCompute(image_cur, None)
+            #kp2, des2 = akaze.detectAndCompute(image_cur, None)
 
+            if len(kp2) < 100:
+                break
+            
             bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
             matches = bf.match(des1, des2)
-            matches = sorted(matches, key = lambda x:x.distance)
-
-            """
-            # FLANN match
-            FLANN_INDEX_LSH = 6
-            index_params= dict(algorithm = FLANN_INDEX_LSH,
-                                table_number = 6, # 12
-                                key_size = 14,     # 20
-                                multi_probe_level = 1) #2
-            search_params = dict(checks=50)
-            flann = cv2.FlannBasedMatcher(index_params,search_params)
-            knn_matches = flann.knnMatch(des1, des2, k=2)
-            # ratio test as per Lowe's paper
-            matches = []
-            for i in range(0, len(knn_matches)):
-                try:
-                    m, n = knn_matches[i]
-                    if m.distance < 0.7 * n.distance:
-                        matches.append(m)
-                except:
-                    continue
-            """
 
             if len(matches) < 100:
                 break
@@ -79,40 +65,34 @@ def main():
 
         if initialized is True:
             break
+        else:
+            i += max_delta
 
-    print(initialized)
     print(rgb_filenames[idx_init], rgb_filenames[idx_cur])
     print(idx_init, idx_cur)
     print(f"R = \n{initializer.R_init}")
     print(f"t = \n{initializer.t_init}")
 
+    rotX_90 = Rotation.from_rotvec(np.pi/2 * np.array([1, 0, 0]))
+
     rot_vec_cur = camera_params[idx_cur, 0:3]
     translation_cur= camera_params[idx_cur, 3:6]
     transform_cur= np.identity(4)
-    transform_cur[:3, :3] = Rotation.from_rotvec(rot_vec_cur).as_matrix()
+    rot_cur = Rotation.from_rotvec(rot_vec_cur)
+    rot_cur = rotX_90 * rot_cur  # from TUM coord to OpenCV coord
+    transform_cur[:3, :3] = rot_cur.as_matrix()
     transform_cur[:3, 3] = translation_cur
 
     rot_vec_init = camera_params[idx_init, 0:3]
     translation_init = camera_params[idx_init, 3:6]
     transform_init = np.identity(4)
-    transform_init[:3, :3] = Rotation.from_rotvec(rot_vec_init).as_matrix()
+    rot_init = Rotation.from_rotvec(rot_vec_init)
+    rot_init = rotX_90 * rot_init  # from TUM coord to OpenCV coord
+    transform_init[:3, :3] = rot_init.as_matrix()
     transform_init[:3, 3] = translation_init
 
-    transform_rel = transform_cur @ np.linalg.inv(transform_init)
+    transform_rel = np.linalg.inv(transform_cur) @ transform_init
     transform_rel[:3, 3] = transform_rel[:3, 3] / np.linalg.norm(transform_rel[:3, 3])
-
-    """
-    rot_vec_cur = camera_params[idx_cur, 0:3]
-    trans_cur = camera_params[idx_cur, 3:6]
-
-    rot_init = Rotation.from_rotvec(rot_vec_init)
-    rot_cur = Rotation.from_rotvec(rot_vec_cur)
-    rot_rel = rot_init.inv() * rot_cur
-
-    trans_rel = trans_cur - trans_init
-    trans_rel = trans_rel / np.linalg.norm(trans_rel)
-    trans_rel = rot_init.as_matrix() @ trans_rel
-    """
 
     print("transform_rel = ")
     print(transform_rel)
@@ -121,4 +101,5 @@ def main():
 
 if __name__ == "__main__":
     # print("opencv version: " + cv2.__version__)
+    # np.show_config()
     main()

@@ -41,7 +41,7 @@ def main():
     print("start.")
 
     rgb_filenames, camera_params = \
-        read_files_tum(folder_path="data/rgbd_dataset_freiburg1_desk/", delta = 10)
+        read_files_tum(folder_path="data/rgbd_dataset_freiburg1_plant/", delta = 10)
 
     scale = 10
     camera_params[:, 3:6] *= scale
@@ -54,9 +54,8 @@ def main():
 
     for param in camera_params:
         rot = Rotation.from_rotvec(param[0:3])
-        #rotX_90 = Rotation.from_rotvec(-np.pi/2 * np.array([1, 0, 0]))
-        #rot = rotX_90 * rot
         R = rot.as_matrix()
+        R = np.linalg.inv(R)
         t = param[3:6]
 
         arrow = Arrow(1.0)
@@ -67,7 +66,7 @@ def main():
     ax.set_ylabel('y')
     ax.set_zlabel('z')
 
-    ax.view_init(elev=50, azim=0)
+    ax.view_init(elev=0, azim=-90)
 
     plt.savefig("tum.png", format="png", dpi=300)
     plt.show()

@@ -20,10 +20,10 @@ class Initializer:
     def setK(self):
         # for TUM RGBD dataset
         self.K = np.identity(3)
-        self.K[0, 0] = self.fx = 525.0
-        self.K[1, 1] = self.fy = 525.0
-        self.K[0, 2] = self.cx = 319.5
-        self.K[1, 2] = self.cy = 239.5
+        self.K[0, 0] = self.fx = 517.3  # = 525.0
+        self.K[1, 1] = self.fy = 516.5  # = 525.0
+        self.K[0, 2] = self.cx = 318.6  # = 319.5
+        self.K[1, 2] = self.cy = 255.3  # = 239.5
 
     def initialize(self):
         # generate sets of 8 points for each RANSAC iteration
@@ -385,7 +385,6 @@ class Initializer:
         u, s, vt = svd(A)
         point3d = vt[3, :].transpose()
         point3d = point3d[:3] / point3d[3]
-
         return point3d
 
     def normalize(self, keyPoints_cv):

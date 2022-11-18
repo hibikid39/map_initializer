@@ -40,6 +40,7 @@ def read_files_tum(folder_path: str = "data/rgbd_dataset_freiburg1_desk/", delta
     rots = Rotation.from_quat(poses[:, 3:])
     camera_params = np.zeros((poses.shape[0], 6), np.float32)
     # [[rot vec], [rot trans]]
+    """
     rot_mat = np.zeros((poses.shape[0], 3, 3), np.float32)
     for i in range(poses.shape[0]):
         rot_mat[i] = rots.as_matrix()[i] @ np.array([[1, 0, 0],
@@ -48,6 +49,7 @@ def read_files_tum(folder_path: str = "data/rgbd_dataset_freiburg1_desk/", delta
     rots = Rotation.from_matrix(rot_mat)
     rotX_90 = Rotation.from_rotvec(-np.pi/2 * np.array([1, 0, 0]))
     rots = rotX_90 * rots  # from ROS coord to OpenCV coord
+    """
     camera_params[:, :3] = rots.as_rotvec()
 
     # set translation to camera_param
