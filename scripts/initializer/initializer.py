@@ -1,3 +1,5 @@
+import time
+
 import cv2
 import numpy as np
 from numpy.linalg import svd
@@ -25,10 +27,22 @@ class Initializer:
         self.K[0, 2] = self.cx = 318.6  # = 319.5
         self.K[1, 2] = self.cy = 255.3  # = 239.5
 
+    def initialize_F(self):
+        # generate sets of 8 points for each RANSAC iteration
+        sets_idx = np.random.randint(0, len(self.matches_cv)-1, (self.maxIteration, 8))
+
+        # compute a fundamental matrix
+        scoreF, bInliersF, F = self.findFundamental(sets_idx)
+
+        minParallax = 1.0
+        minTriangulated = 50.0
+
+        return self.reconstructF(bInliersF, F, minParallax, minTriangulated)
+
     def initialize(self):
         # generate sets of 8 points for each RANSAC iteration
         sets_idx = np.random.randint(0, len(self.matches_cv)-1, (self.maxIteration, 8))
-        
+
         # compute a fundamental matrix and a homography
         scoreH, bInliersH, H = self.findHomography(sets_idx)
         scoreF, bInliersF, F = self.findFundamental(sets_idx)

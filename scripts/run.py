@@ -18,10 +18,9 @@ def main():
         read_files_tum(folder_path="data/rgbd_dataset_freiburg1_desk/", delta=1)
 
     orb = cv2.ORB_create(nfeatures=500)
-    #akaze = cv2.AKAZE_create()
 
     max_delta = 30  # < 60
-    start_frame = 0
+    start_frame = 100
 
     idx_init = 0
     idx_cur = 0
@@ -34,12 +33,10 @@ def main():
         print("ref frame: ", i)
         image_ref = cv2.imread(rgb_filenames[i], cv2.IMREAD_GRAYSCALE)
         kp1, des1 = orb.detectAndCompute(image_ref, None)
-        #kp1, des1 = akaze.detectAndCompute(image_ref, None)
         
         for j in range(i + 3, i + max_delta):
             image_cur = cv2.imread(rgb_filenames[j], cv2.IMREAD_GRAYSCALE)
             kp2, des2 = orb.detectAndCompute(image_cur, None)
-            #kp2, des2 = akaze.detectAndCompute(image_cur, None)
 
             if len(kp2) < 100:
                 break
@@ -52,7 +49,7 @@ def main():
 
             initializer.setKeyPoints(kp1, kp2, matches)
             
-            if initializer.initialize() is True:
+            if initializer.initialize_F() is True:
                 initialized = True
 
                 match_image = cv2.drawMatches(image_ref, kp1, image_cur, kp2, matches[:25], None, flags=2)
