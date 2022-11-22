@@ -8,6 +8,7 @@ from scipy.spatial.transform import Rotation
 from dataloader import read_files_tum
 from initializer.initializer import Initializer
 from initializer.bundle_adjustment import BundleAdjustment
+from util import *
 
 class Frame:
     def __init__(self, image, keypoint, description):
@@ -51,9 +52,6 @@ def main():
 
         if i < max_delta:
             continue
-
-        #if i < 320:
-        #    continue
         
         for j in range(i - max_delta, i - min_delta):
             frame_ref = frames[j]
@@ -98,10 +96,13 @@ def main():
 
     # Bundle Adjustment
     ba = BundleAdjustment(pinhole_calib=[initializer.fx, initializer.fy, initializer.cx, initializer.cy])
+    """
     rot = Rotation.from_matrix(initializer.R_init)
     camera_param = np.zeros(6)
     camera_param[0:3] = rot.as_rotvec()
     camera_param[3:6] = initializer.t_init
+    """
+    camera_param = RT2Twist(initializer.R_init, initializer.t_init)
     ba.setParams(initializer.keyPoints1_cv, initializer.keyPoints2_cv, initializer.matches_cv, initializer.points3d, initializer.bGoods, camera_param)
     ba.optimize()
 

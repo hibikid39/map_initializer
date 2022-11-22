@@ -3,6 +3,7 @@ import math
 from scipy.sparse import lil_matrix
 from scipy.optimize import least_squares
 from scipy.spatial.transform import Rotation
+from util import *
 
 # Compute residuals
 def func(params, n_cameras, n_points, camera_indices, point_indices, points_2d, pinhole_calib):
@@ -61,10 +62,8 @@ class BundleAdjustment:
     # Convert 3D points to 2D by projecting onto images
     @classmethod
     def project(cls, point3d_w, camera_param, pinhole_calib):
-        rot = Rotation.from_rotvec(camera_param[0:3])
-        rot_mat = rot.as_matrix()
-        translation = camera_param[3:6]
-        point3d_c = rot_mat @ point3d_w + translation # camera coordinate
+        R, t = Twist2RT(camera_param)
+        point3d_c = R @ point3d_w + t # camera coordinate
 
         fx = pinhole_calib[0]
         fy = pinhole_calib[1]
@@ -106,9 +105,12 @@ class BundleAdjustment:
         camera_params = res_param[:self.n_cameras * 6].reshape((self.n_cameras, 6))
         points_3d = res_param[self.n_cameras * 6:].reshape((self.n_points, 3))
 
+        R, t = Twist2RT(camera_params[1])
+        """
         rot = Rotation.from_rotvec(camera_params[1, 0:3])
         rot_mat = rot.as_matrix()
         translation = camera_params[1, 3:6]
+        """
 
-        print(rot_mat)
-        print(translation)
+        print(R)
+        print(t)
