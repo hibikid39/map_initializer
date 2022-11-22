@@ -7,36 +7,61 @@ from scipy.spatial.transform import Rotation
 
 from dataloader import read_files_tum
 from initializer.initializer import Initializer
+from initializer.bundle_adjustment import BundleAdjustment
+
+class Frame:
+    def __init__(self, image, keypoint, description):
+        self.image = image 
+        self.keypoint = keypoint
+        self.description = description
+    
+    """
+    def undistortKeypoints(self, calib, dist):
+        new_keypoints
+    """
 
 def main():
     print("start.")
     np.random.seed(3407)
 
-    initializer = Initializer(200)
-
     rgb_filenames, camera_params = \
-        read_files_tum(folder_path="data/rgbd_dataset_freiburg1_desk/", delta=1)
+        read_files_tum(folder_path="data/rgbd_dataset_freiburg1_plant/", delta=1)
 
     orb = cv2.ORB_create(nfeatures=500)
 
-    max_delta = 30  # < 60
-    start_frame = 100
+    max_delta = 30
+    min_delta = 5
 
     idx_init = 0
-    idx_cur = 0
+    idx_cur = 0    
 
-    num_frames = len(rgb_filenames)
+    initializer = Initializer(200)
     initialized = False
 
-    i = start_frame
-    while i < num_frames:
-        print("ref frame: ", i)
-        image_ref = cv2.imread(rgb_filenames[i], cv2.IMREAD_GRAYSCALE)
-        kp1, des1 = orb.detectAndCompute(image_ref, None)
+    frames = []
+
+    num_frames = len(rgb_filenames)
+    for i in range(0, num_frames):
+        print("frame_idx: ", i)
+
+        image_cur = cv2.imread(rgb_filenames[i], cv2.IMREAD_GRAYSCALE)
+        kp, des = orb.detectAndCompute(image_cur, None)
+        frame_cur = Frame(image_cur, kp, des)
+        frames.append(frame_cur)
+
+        if i < max_delta:
+            continue
+
+        #if i < 320:
+        #    continue
         
-        for j in range(i + 3, i + max_delta):
-            image_cur = cv2.imread(rgb_filenames[j], cv2.IMREAD_GRAYSCALE)
-            kp2, des2 = orb.detectAndCompute(image_cur, None)
+        for j in range(i - max_delta, i - min_delta):
+            frame_ref = frames[j]
+
+            kp1 = frame_ref.keypoint
+            des1 = frame_ref.description
+            kp2 = kp
+            des2 = des
 
             if len(kp2) < 100:
                 break
@@ -52,31 +77,38 @@ def main():
             if initializer.initialize_F() is True:
                 initialized = True
 
-                match_image = cv2.drawMatches(image_ref, kp1, image_cur, kp2, matches[:25], None, flags=2)
+                match_image = cv2.drawMatches(frame_ref.image, kp1, image_cur, kp2, matches[:25], None, flags=2)
                 cv2.imwrite("outputs/match_image.jpg", match_image)
 
-                idx_init = i
-                idx_cur = j
+                idx_init = j
+                idx_cur = i
 
                 break
 
         if initialized is True:
             break
-        else:
-            i += max_delta
+
+    if initialized is False:
+        exit(1)
 
     print(rgb_filenames[idx_init], rgb_filenames[idx_cur])
     print(idx_init, idx_cur)
     print(f"R = \n{initializer.R_init}")
     print(f"t = \n{initializer.t_init}")
 
-    rotX_90 = Rotation.from_rotvec(np.pi/2 * np.array([1, 0, 0]))
+    # Bundle Adjustment
+    ba = BundleAdjustment(pinhole_calib=[initializer.fx, initializer.fy, initializer.cx, initializer.cy])
+    rot = Rotation.from_matrix(initializer.R_init)
+    camera_param = np.zeros(6)
+    camera_param[0:3] = rot.as_rotvec()
+    camera_param[3:6] = initializer.t_init
+    ba.setParams(initializer.keyPoints1_cv, initializer.keyPoints2_cv, initializer.matches_cv, initializer.points3d, initializer.bGoods, camera_param)
+    ba.optimize()
 
     rot_vec_cur = camera_params[idx_cur, 0:3]
     translation_cur= camera_params[idx_cur, 3:6]
     transform_cur= np.identity(4)
     rot_cur = Rotation.from_rotvec(rot_vec_cur)
-    rot_cur = rotX_90 * rot_cur  # from TUM coord to OpenCV coord
     transform_cur[:3, :3] = rot_cur.as_matrix()
     transform_cur[:3, 3] = translation_cur
 
@@ -84,7 +116,6 @@ def main():
     translation_init = camera_params[idx_init, 3:6]
     transform_init = np.identity(4)
     rot_init = Rotation.from_rotvec(rot_vec_init)
-    rot_init = rotX_90 * rot_init  # from TUM coord to OpenCV coord
     transform_init[:3, :3] = rot_init.as_matrix()
     transform_init[:3, 3] = translation_init
 

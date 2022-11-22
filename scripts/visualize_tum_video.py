@@ -38,25 +38,25 @@ class Arrow:
         ax.add_line(yline)
         ax.add_line(zline)
 
-def main():
-    print("start.")
+print("start.")
 
-    rgb_filenames, camera_params = \
-        read_files_tum(folder_path="data/rgbd_dataset_freiburg1_desk/", delta = 10)
+rgb_filenames, camera_params = \
+    read_files_tum(folder_path="data/rgbd_dataset_freiburg1_desk/", delta = 10)
 
-    scale = 10
-    camera_params[:, 3:6] *= scale
+scale = 10
+camera_params[:, 3:6] *= scale
 
-    ax = plt.figure().add_subplot(projection='3d')
+fig = plt.figure()
+ax = fig.add_subplot(projection='3d')
 
-    red = 300
+def init():
     ax.plot(camera_params[:, 3], camera_params[:, 4], camera_params[:, 5], "o-", color="#A0A0A0", ms=1)
-    # ax.plot(camera_params[red, 3], camera_params[red, 4], camera_params[red, 5], "o", color="#aa0000", ms=5)
 
     for param in camera_params:
         rot = Rotation.from_rotvec(param[0:3])
+        change_coord = np.array([[1, 0, 0], [0, 0, 1], [0, 1, 0]]) # from TUM coord to OpenCV coord
+        #R = change_coord @ rot.as_matrix()
         R = rot.as_matrix()
-        #R = np.linalg.inv(R)
         t = param[3:6]
 
         arrow = Arrow(1.0)
@@ -67,16 +67,18 @@ def main():
     ax.set_ylabel('y')
     ax.set_zlabel('z')
 
-    ax.view_init(elev=0, azim=-90)
+    return fig,
 
-    plt.savefig("outputs/tum.png", format="png", dpi=300)
-    plt.show()
+def animate(i):
+    ax.view_init(elev=30., azim=3.6*i)
+    return fig,
 
-    print(f"start: {camera_params[0, 3:6]}")
-    print(f"end: {camera_params[-1, 3:6]}")
+ani = animation.FuncAnimation(fig, animate, init_func=init,
+                               frames=100, interval=100, blit=True)
 
-    print("end.")
+ani.save("outputs/rotate.gif", writer="PillowWriter",dpi=200)
 
-if __name__ == "__main__":
-    # print("opencv version: " + cv2.__version__)
-    main()
+print(f"start: {camera_params[0, 3:6]}")
+print(f"end: {camera_params[-1, 3:6]}")
+
+print("end.")

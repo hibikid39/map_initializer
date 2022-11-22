@@ -22,10 +22,20 @@ class Initializer:
     def setK(self):
         # for TUM RGBD dataset
         self.K = np.identity(3)
-        self.K[0, 0] = self.fx = 517.3  # = 525.0
-        self.K[1, 1] = self.fy = 516.5  # = 525.0
-        self.K[0, 2] = self.cx = 318.6  # = 319.5
-        self.K[1, 2] = self.cy = 255.3  # = 239.5
+
+        """
+        # Freiburg 1 RGB
+        self.K[0, 0] = self.fx = 517.3
+        self.K[1, 1] = self.fy = 516.5
+        self.K[0, 2] = self.cx = 318.6
+        self.K[1, 2] = self.cy = 255.3
+        """
+
+        # ROS default
+        self.K[0, 0] = self.fx = 525.0
+        self.K[1, 1] = self.fy = 525.0
+        self.K[0, 2] = self.cx = 319.5
+        self.K[1, 2] = self.cy = 239.5
 
     def initialize_F(self):
         # generate sets of 8 points for each RANSAC iteration
@@ -330,7 +340,7 @@ class Initializer:
         return False
     
     def reconstructF(self, bInliers, F, minParallax = 1.0, minTriangulated = 50.0):
-        N = bInliers.count(True)  # num of inliers
+        N = bInliers.count(True)  # num of inlier matches
 
         # compute essential matrix
         E = self.K.transpose() @ F @ self.K
@@ -368,21 +378,29 @@ class Initializer:
             if parallax1 > minParallax:
                 self.R_init = R1
                 self.t_init = t1
+                self.points3d = points3d1
+                self.bGoods = bGoods1
                 return True
         elif maxGood == nGood2:
             if parallax2 > minParallax:
                 self.R_init = R2
                 self.t_init = t1
+                self.points3d = points3d2
+                self.bGoods = bGoods2
                 return True
         elif maxGood == nGood3:
             if parallax3 > minParallax:
                 self.R_init = R1
                 self.t_init = t2
+                self.points3d = points3d3
+                self.bGoods = bGoods3
                 return True
         elif maxGood == nGood4:
             if parallax4 > minParallax:
                 self.R_init = R2
                 self.t_init = t2
+                self.points3d = points3d4
+                self.bGoods = bGoods4
                 return True
 
         return False
