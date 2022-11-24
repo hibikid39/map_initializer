@@ -9,6 +9,7 @@ from util import *
 
 # load data files in TUM directories
 def read_files_tum(folder_path: str = "data/TUM/rgbd_dataset_freiburg1_desk/", delta: int = 1):
+
     # rgb file pathes
     csv_file = open(folder_path + "rgb.txt", "r")
     f = csv.reader(csv_file, delimiter=" ")
@@ -83,6 +84,3 @@ def read_files_replica(folder_path: str = "data/Replica/", data_name: str = "roo
     
     return rgb_filenames[::delta], camera_params[::delta], camera_calib
     
-
-
-

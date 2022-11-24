@@ -19,7 +19,7 @@ class Initializer:
 
     def setK(self, camera_calib):
         # camera_calib = [fx, fy, cx, cy]
-        
+
         self.K = np.identity(3)
 
         """
@@ -30,11 +30,11 @@ class Initializer:
         self.K[1, 2] = self.cy = 255.3
         """
 
-        # ROS default
         self.K[0, 0] = self.fx = camera_calib[0]
         self.K[1, 1] = self.fy = camera_calib[1]
         self.K[0, 2] = self.cx = camera_calib[2]
         self.K[1, 2] = self.cy = camera_calib[3]
+
 
     def initialize_F(self):
         # generate sets of 8 points for each RANSAC iteration
