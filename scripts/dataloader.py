@@ -46,11 +46,40 @@ def read_files_tum(folder_path: str = "data/TUM/rgbd_dataset_freiburg1_desk/", d
 
     return rgb_filenames[::delta], camera_params[::delta]
 
+# load image files in nerf_synthetic directories
+def read_files_nerf(
+        folder_path: str = "data/nerf_synthetic/lego/",
+        delta: int = 1
+    ):
+    # load json
+    with open(folder_path+"transforms_train.json") as f:
+        transform_train = json.load(f)
+
+    # load file name
+    length = len(transform_train["frames"])
+    rgb_filenames = []
+    camera_params = np.zeros((length, 6), np.float32)
+    for i in range(length):
+        frame = transform_train["frames"][i]
+        # rgb image
+        file_path = frame["file_path"] + ".png"
+        file_path = folder_path + file_path[2:]  # remove ./
+        rgb_filenames.append(file_path)
+
+        transform_matrix = np.array(frame["transform_matrix"])
+        rot = Rotation.from_matrix(transform_matrix[:3, :3])
+        rot_180 = Rotation.from_rotvec(np.array([np.pi, 0, 0]))
+        #rot = rot * rot_180
+        camera_params[i, 0:3] = rot.as_rotvec()
+        camera_params[i, 3:6] = transform_matrix[:3, 3]
+
+    return rgb_filenames[::delta], camera_params[::delta]
+
 # load data files in TUM directories
-def read_files_replica(folder_path: str = "data/Replica/", data_name: str = "room1", delta: int = 1):
+def read_files_replica(folder_path: str = "data/Replica/", data_name: str = "room1", num_frames: int = 460, delta: int = 1):
     # load intrinsic params
     camera_calib = np.zeros(7)
-    with open(folder_path + "cam_params.json") as f:
+    with open(folder_path + "cam_params_original.json") as f:
         df = json.load(f)
         camera_calib[0] = df["camera"]["w"]
         camera_calib[1] = df["camera"]["h"]
@@ -70,17 +99,28 @@ def read_files_replica(folder_path: str = "data/Replica/", data_name: str = "roo
     trajectories = trajectories.reshape((-1, 4, 4))
     camera_params = np.zeros((trajectories.shape[0], 6))
     for i, pose in enumerate(trajectories):
+        #pose = np.linalg.inv(pose)
         rot = Rotation.from_matrix(pose[0:3, 0:3])
-        rot_vec = rot.as_rotvec()
-        camera_params[i, 0:3] = rot_vec
+        rot_180 = Rotation.from_rotvec(np.array([np.pi, 0, 0]))
+        #rot = rot * rot_180
+        camera_params[i, 0:3] = rot.as_rotvec()
         camera_params[i, 3:6] = pose[:3, 3]
 
     # set rgb filenames
-    num_frames = 2000
     rgb_filenames = []
     for i in range(0, num_frames):
         filename = folder_path + data_name + "/results/frame{:0>6}.jpg".format(i)
         rgb_filenames.append(filename)
     
     return rgb_filenames[::delta], camera_params[::delta], camera_calib
+    
+# load data files in TUM directories
+def read_files_replica_onlyImage(folder_path: str = "data/Replica/", data_name: str = "room1", num_frames: int = 460, delta: int = 1):
+    # set rgb filenames
+    rgb_filenames = []
+    for i in range(0, num_frames):
+        filename = folder_path + data_name + "/results/frame{:0>6}.jpg".format(i)
+        rgb_filenames.append(filename)
+    
+    return rgb_filenames[::delta]
     

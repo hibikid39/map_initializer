@@ -44,7 +44,7 @@ print("start.")
 _, camera_params, _ = \
 read_files_replica(folder_path="data/Replica/", data_name="room1", delta=10)
 
-scale = 10
+scale = 1
 camera_params[:, 3:6] *= scale
 
 fig = plt.figure()
@@ -58,7 +58,7 @@ def init():
         R = rot.as_matrix()
         t = param[3:6]
 
-        arrow = Arrow(1.0)
+        arrow = Arrow(0.1)
         arrow.transform(R, t)
         arrow.draw_coord(ax)
 
@@ -69,7 +69,7 @@ def init():
     return fig,
 
 def animate(i):
-    ax.view_init(elev=90., azim=3.6*i)
+    ax.view_init(elev=0., azim=3.6*i)
     return fig,
 
 ani = animation.FuncAnimation(fig, animate, init_func=init,
