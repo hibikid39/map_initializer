@@ -76,7 +76,7 @@ def read_files_nerf(
     return rgb_filenames[::delta], camera_params[::delta]
 
 # load data files in TUM directories
-def read_files_replica(folder_path: str = "data/Replica/", data_name: str = "room1", num_frames: int = 460, delta: int = 1):
+def read_files_replica(folder_path: str = "data/Replica/", data_name: str = "room1", delta: int = 1):
     # load intrinsic params
     camera_calib = np.zeros(7)
     with open(folder_path + "cam_params_original.json") as f:
@@ -95,6 +95,7 @@ def read_files_replica(folder_path: str = "data/Replica/", data_name: str = "roo
     trajectories_list = []
     for row in f:
         trajectories_list.append(np.array(row).astype(float))
+    num_frames = len(trajectories_list)
     trajectories = np.array(trajectories_list)
     trajectories = trajectories.reshape((-1, 4, 4))
     camera_params = np.zeros((trajectories.shape[0], 6))
