@@ -100,10 +100,7 @@ def read_files_replica(folder_path: str = "data/Replica/", data_name: str = "roo
     trajectories = trajectories.reshape((-1, 4, 4))
     camera_params = np.zeros((trajectories.shape[0], 6))
     for i, pose in enumerate(trajectories):
-        #pose = np.linalg.inv(pose)
         rot = Rotation.from_matrix(pose[0:3, 0:3])
-        rot_180 = Rotation.from_rotvec(np.array([np.pi, 0, 0]))
-        #rot = rot * rot_180
         camera_params[i, 0:3] = rot.as_rotvec()
         camera_params[i, 3:6] = pose[:3, 3]
 

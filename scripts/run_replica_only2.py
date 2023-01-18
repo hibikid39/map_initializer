@@ -16,71 +16,33 @@ def main():
     np.random.seed(3407)
 
     rgb_filenames, camera_params, camera_calib = \
-        read_files_replica(folder_path="data/Replica/", data_name="office0_original", delta=1)
+        read_files_replica(folder_path="data/Replica/", data_name="office0_original", delta=15)
     camera_calib = camera_calib[2:6]
 
     orb = cv2.ORB_create(nfeatures=500)
 
-    max_delta = 30
-    min_delta = 5
-
-    idx_init = 0
-    idx_cur = 0    
-
     initializer = Initializer(200)
     initializer.setK(camera_calib)
     
-    initialized = False
+    image_cur = cv2.imread(rgb_filenames[1], cv2.IMREAD_GRAYSCALE)
+    kp_cur, des_cur = orb.detectAndCompute(image_cur, None)
+    frame_cur = Frame(image_cur, kp_cur, des_cur)
 
-    frames = []
+    image_old = cv2.imread(rgb_filenames[0], cv2.IMREAD_GRAYSCALE)
+    kp_old, des_old = orb.detectAndCompute(image_old, None)
+    frame_old = Frame(image_old, kp_old, des_old)
 
-    num_frames = len(rgb_filenames)
-    for i in range(0, num_frames):
-        print("frame_idx: ", i)
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    matches = bf.match(des_old, des_old)
 
-        image_cur = cv2.imread(rgb_filenames[i], cv2.IMREAD_GRAYSCALE)
-        kp, des = orb.detectAndCompute(image_cur, None)
-        frame_cur = Frame(image_cur, kp, des)
-        frames.append(frame_cur)
-
-        if i < max_delta:
-            continue
-        
-        for j in range(i - max_delta, i - min_delta):
-            frame_ref = frames[j]
-
-            kp1 = frame_ref.keypoint
-            des1 = frame_ref.description
-            kp2 = kp
-            des2 = des
-
-            if len(kp2) < 100:
-                break
+    initializer.setKeyPoints(kp_old, kp_old, matches)
             
-            bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-            matches = bf.match(des1, des2)
+    initializer.initialize_F()
 
-            if len(matches) < 100:
-                break
+    match_image = cv2.drawMatches(frame_old.image, kp_old, frame_cur.image, kp_cur, matches[:25], None, flags=2)
+    cv2.imwrite("outputs/match_image.jpg", match_image)
 
-            initializer.setKeyPoints(kp1, kp2, matches)
-            
-            if initializer.initialize_F() is True:
-                initialized = True
-
-                match_image = cv2.drawMatches(frame_ref.image, kp1, image_cur, kp2, matches[:25], None, flags=2)
-                cv2.imwrite("outputs/match_image.jpg", match_image)
-
-                idx_init = j
-                idx_cur = i
-
-                break
-
-        if initialized is True:
-            break
-
-    if initialized is False:
-        exit(1)
+    return
 
     print(rgb_filenames[idx_init], rgb_filenames[idx_cur])
     print(idx_init, idx_cur)
